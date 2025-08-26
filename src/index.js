@@ -16,9 +16,22 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.0-flash" });
 
 // Load RTFC-based system prompt
 const systemPrompt = fs.readFileSync(
-  path.join(__dirname, "prompts", "systemPrompt.txt"),
-  "utf8"
+    path.join(__dirname, "prompts", "systemPrompt.txt"),
+    "utf8"
 );
+
+const { getDynamicPrompt } = require("./prompts/dynamic.js");
+
+async function run() {
+  const query = process.argv.slice(2).join(" ");
+  const dynamicPrompt = getDynamicPrompt(query);
+
+  const result = await model.generateContent(dynamicPrompt);
+  console.log(result.response.text());
+}
+
+run();
+
 
 app.post('/api/explain', async (req, res) => {
   const { term } = req.body;
