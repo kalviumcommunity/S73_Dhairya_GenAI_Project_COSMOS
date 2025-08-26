@@ -6,12 +6,47 @@ import { getDynamicPrompt } from "./prompts/dynamic.js";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
+// Running total of tokens for session
+let sessionTokenCount = {
+  input: 0,
+  output: 0,
+  total: 0,
+};
+
 /**
  * Load prompt file by name
  */
 function loadPrompt(fileName) {
   const filePath = path.join("src", "prompts", fileName);
   return fs.readFileSync(filePath, "utf8");
+}
+
+/**
+ * Log token usage after each call
+ */
+function logTokens(usage) {
+  if (!usage) {
+    console.log("⚠️ No token usage metadata available.");
+    return;
+  }
+
+  const inputTokens = usage.promptTokenCount || 0;
+  const outputTokens = usage.candidatesTokenCount || 0;
+  const totalTokens = usage.totalTokenCount || inputTokens + outputTokens;
+
+  // Log per-call usage
+  console.log(
+    `\n Tokens used this call: input=${inputTokens}, output=${outputTokens}, total=${totalTokens}`
+  );
+
+  // Update running session totals
+  sessionTokenCount.input += inputTokens;
+  sessionTokenCount.output += outputTokens;
+  sessionTokenCount.total += totalTokens;
+
+  console.log(
+    `Running session totals: input=${sessionTokenCount.input}, output=${sessionTokenCount.output}, total=${sessionTokenCount.total}`
+  );
 }
 
 /**
@@ -58,8 +93,13 @@ async function run() {
 
   try {
     const result = await model.generateContent(finalPrompt);
+
     console.log("\n🌌 Answer:");
     console.log(result.response.text());
+
+    // Log token usage
+    logTokens(result.response.usageMetadata);
+
   } catch (err) {
     console.error("Error while generating response:", err.message);
   }
