@@ -10,5 +10,5 @@ async function askQuestion() {
   });
 
   const data = await response.json();
-  resDiv.innerHTML = data.answer || "❌ Error: " + data.error;
+  resDiv.innerHTML = data.answer || "⚠️ Error: " + data.error;
 }
