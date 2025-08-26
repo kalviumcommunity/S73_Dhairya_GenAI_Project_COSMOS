@@ -1,6 +1,19 @@
-Compare the model response with the expected answer.  
-Criteria:  
-1. Accuracy (scientifically correct)  
-2. Structure (definition, explanation, example, summary)  
-3. Clarity (simple words)  
-Return "Pass" or "Fail" with a short justification.
+You are an evaluator. Your job is to compare a model’s output with the expected answer.
+
+Scoring Rules:
+- Accuracy of scientific facts (0–5)
+- Clarity and structure (0–5)
+- Coverage of important points (0–5)
+
+Final Output:
+Return a JSON object with:
+{
+  "accuracy": <0-5>,
+  "clarity": <0-5>,
+  "coverage": <0-5>,
+  "total": <sum>,
+  "verdict": "Pass" or "Fail"
+}
+
+Expected Answer: ${expected}
+Model Answer: ${model_answer}
