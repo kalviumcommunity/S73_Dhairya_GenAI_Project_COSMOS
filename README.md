@@ -1,107 +1,88 @@
 # 🌌 COSMOS – Cognitive Ontology System for Mapping Outer Space
 
-COSMOS is an **AI-powered glossary system** that maps, explains, and relates **space science concepts** using Large Language Model (LLM) techniques. It demonstrates practical implementations of embeddings, similarity functions, prompting strategies, and evaluation pipelines, making it an ideal educational + portfolio project.
+**COSMOS** is an **AI-powered glossary system** built with **Next.js (frontend)** and **Node.js serverless functions (backend)** that maps, explains, and relates **space science concepts** using the **Google Gemini family of models**.
 
 ---
 
 ## Project Idea
 
-The goal of COSMOS is to provide **clear explanations of astronomy and space science terms**. For example, when asked *“What is a Nebula?”*, COSMOS retrieves the closest glossary term using embeddings similarity, applies prompting techniques, and returns a structured, easy-to-understand explanation.
+The goal of COSMOS is to provide **clear, structured explanations of astronomy and space science terms**.
 
-This project ties together multiple **GenAI concepts** such as zero-shot prompting, embeddings, cosine similarity, and evaluation pipelines.
+For example, when a user asks *“What is a Nebula?”*:
+
+1. The query is processed using **embeddings and similarity functions** to find the closest glossary entry.
+2. A **prompting strategy** (Zero-Shot, Few-Shot, Chain-of-Thought, etc.) is applied.
+3. The Gemini model generates a **structured JSON output** containing the explanation, difficulty level, and related terms.
+
+This allows users to **compare how different prompting techniques shape the AI’s response**, making COSMOS both an interactive glossary and a learning lab for GenAI.
 
 ---
 
-## Features & Concepts Implemented
+## Features & Concepts
 
-### Prompting Techniques
+### Prompting Strategies
 
-* **Zero-Shot Prompting** → Directly asks the LLM to explain a term.
-* **One-Shot Prompting** → Provides 1 example glossary entry before asking for a new one.
-* **Multi-Shot Prompting** → Provides multiple examples to guide the response.
-* **Chain-of-Thought Prompting** → Encourages the model to reason step by step when answering.
-* **Dynamic Prompting** → Adapts prompts based on user input complexity.
-* **System & User Prompts (RTFC Framework)** → Roles and constraints defined clearly.
+* **Zero-Shot Prompting** → Direct explanation with no examples.
+* **One-Shot Prompting** → Uses a single example to guide the response.
+* **Few-Shot Prompting** → Provides multiple examples for consistency.
+* **Chain-of-Thought (CoT)** → Encourages step-by-step reasoning.
+* **Dynamic Prompting** → Adapts prompts based on input complexity.
+* **RTFC Framework** (Role, Task, Format, Constraints) for robust system + user prompting.
 
 ### Embeddings & Similarity
 
-* Implemented **text embeddings** to represent glossary terms as vectors.
-* Implemented multiple **similarity functions** to compare embeddings:
+* Glossary terms stored as **text embeddings**.
+* Supports multiple **similarity functions**:
 
   * Cosine Similarity
-  * Dot Product Similarity
+  * Dot Product
   * Euclidean (L2) Distance
 
-### Vector Database
+### Intelligent Glossary
 
-* Glossary entries are stored as embeddings in a simple **vector database**.
-* Query embeddings are compared against stored vectors to retrieve the most relevant concept.
+* Queries retrieve the **most relevant term** using embeddings.
+* Related concepts are suggested to encourage exploration.
+* Output is **structured** (JSON-like) for consistency and clarity.
 
-### Function Calling
+### Model Controls
 
-* Demonstrated function calling where the AI calls a retrieval function to fetch glossary data.
+* **Temperature** for creativity.
+* **Top-K & Top-P Sampling** for balance between determinism and diversity.
+* **Stop Sequences** to ensure clean, bounded outputs.
+* Token usage logging for evaluation.
 
-### Output Handling
+### Automated Evaluation Pipeline
 
-* **Structured Output** → JSON-like format containing: term, definition, difficulty level.
-* **Stop Sequences** → Prevents overly long or irrelevant outputs.
-
-### Model Parameters
-
-* **Temperature** → Controls creativity of responses.
-* **Top-K & Top-P Sampling** → Controls randomness vs determinism.
-* **Tokens & Tokenization** → Logs token usage per request.
-
-### Evaluation Pipeline
-
-* Dataset of **5 sample queries** with expected answers.
-* **Judge prompt** compares LLM output vs expected result.
-* **Automated testing framework** runs evaluation and computes accuracy.
+* Includes a dataset of sample queries with expected terms.
+* A **judge prompt** scores correctness and clarity.
+* Framework automatically runs evaluation and computes accuracy.
 
 ---
 
-## Project Structure
+## Workflow
 
-```
-COSMOS/
-│── glossary.json          # Space glossary terms + definitions
-│── embeddings.py          # Embedding generation + similarity functions
-│── prompting.py           # Prompting strategies (zero-shot, few-shot, etc.)
-│── retrieval.py           # Vector DB retrieval + similarity scoring
-│── evaluation.py          # Dataset + testing framework
-│── main.py                # Entry point: runs glossary queries
-│── README.md              # Project documentation (this file)
-```
+1. **User Query** → e.g., “Tell me about black holes.”
+2. **Embedding Generation** → Query converted to a vector.
+3. **Similarity Search** → Compared against glossary embeddings.
+4. **Relevant Term Retrieved** → e.g., *Black Hole*.
+5. **Prompting Applied** → Selected strategy builds the AI request.
+6. **Gemini API Call** → Returns structured JSON.
+7. **Result Displayed** → Clean UI with definition, difficulty, and related terms.
 
 ---
 
-## Technical Workflow
-
-1. **User Query** → e.g., “What is a black hole?”
-2. **Embedding Generation** → Query is converted into a vector.
-3. **Similarity Search** → Compared with glossary embeddings using cosine/dot/L2.
-4. **Relevant Term Retrieved** → e.g., *Black Hole* entry.
-5. **Prompting Applied** → AI uses few-shot or CoT prompting to generate explanation.
-6. **Structured Output** → Clean JSON response returned.
-
----
-
-## Example Run
+## Example
 
 **Input:** `Tell me about a Nebula.`
 
-**Process:**
-
-* Query → Embedding vector generated.
-* Similarity search → Closest match = *Nebula*.
-* Prompt → Multi-shot prompting applied.
-* Output →
+**Output (JSON):**
 
 ```json
 {
   "term": "Nebula",
   "definition": "A nebula is a giant cloud of dust and gas in space, often serving as a stellar nursery where new stars are born.",
-  "difficulty": "Beginner"
+  "difficulty": "Beginner",
+  "related": ["Star Formation", "Supernova", "Galaxy"]
 }
 ```
 
@@ -117,16 +98,36 @@ COSMOS/
 | What are Exoplanets? | Exoplanet     |
 | Define Galaxy        | Galaxy        |
 
-**Judge Prompt Parameters:**
+---
 
-* Accuracy of definition
-* Correctness of retrieved term
-* Conciseness and clarity
+## Getting Started
+
+1. **Install dependencies:**
+
+   ```bash
+   npm install
+   ```
+
+2. **Set up environment:**
+   Create a `.env.local` file in the root:
+
+   ```
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+3. **Run development server:**
+
+   ```bash
+   npm run dev
+   ```
+
+4. **Open app:**
+   Visit [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
 ## Conclusion
 
-COSMOS is not just a glossary bot—it’s a **demonstration of how modern LLM techniques can be combined to build an intelligent knowledge system**. It highlights prompting strategies, embeddings, similarity search, and evaluation methods in one cohesive project.
+COSMOS is more than a glossary—it’s a **GenAI learning playground**.
+It demonstrates how to integrate **prompting techniques, embeddings, vector search, evaluation pipelines, and structured outputs** into one cohesive application, powered by **Next.js, Node.js, and Google Gemini**.
 
----
