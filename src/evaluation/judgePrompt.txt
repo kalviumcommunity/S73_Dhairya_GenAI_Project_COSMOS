@@ -1,0 +1,6 @@
+Compare the model response with the expected answer.  
+Criteria:  
+1. Accuracy (scientifically correct)  
+2. Structure (definition, explanation, example, summary)  
+3. Clarity (simple words)  
+Return "Pass" or "Fail" with a short justification.
