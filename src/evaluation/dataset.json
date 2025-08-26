@@ -1,0 +1,22 @@
+[
+  {
+    "question": "What is gravity?",
+    "expected": "Gravity is the force that pulls objects toward each other, keeping planets in orbit and giving weight."
+  },
+  {
+    "question": "What is a galaxy?",
+    "expected": "A galaxy is a vast system of stars, dust, and gas bound by gravity, like a city of stars."
+  },
+  {
+    "question": "What is a supernova?",
+    "expected": "A supernova is a powerful explosion of a star at the end of its life, creating heavy elements."
+  },
+  {
+    "question": "What is dark matter?",
+    "expected": "Dark matter is invisible matter that doesn’t emit light but exerts gravity, explaining galaxy rotation."
+  },
+  {
+    "question": "Why do planets orbit the sun?",
+    "expected": "Planets orbit the sun due to the sun’s gravitational pull, balanced with their motion creating stable orbits."
+  }
+]
