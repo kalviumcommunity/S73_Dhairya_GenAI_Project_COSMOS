@@ -1,5 +1,13 @@
-Explain the concept of dark matter in simple terms, structured as:
+Zero-Shot Prompt for SpaceSense
+
+Instruction:
+Without using any prior examples, answer the following space-related question
+in a clear, structured format.
+
+Format:
 1. Definition
 2. Why it is important
 3. Example/Analogy
 4. Short summary
+
+User Question: ${user_query}

@@ -1,3 +1,9 @@
+Multi-Shot Prompt for SpaceSense
+
+Instruction:
+Look at the multiple examples below, then answer the next user question
+in the same style and structure.
+
 Example 1:
 Q: What is gravity?
 A:
@@ -13,3 +19,7 @@ A:
 2. Why it matters: It’s the large-scale structure of the universe.
 3. Analogy: Like a city of billions of stars.
 4. Summary: Galaxies are cosmic star cities.
+
+Now your turn:
+
+User Question: ${user_query}

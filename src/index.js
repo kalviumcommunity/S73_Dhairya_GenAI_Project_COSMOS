@@ -1,61 +1,68 @@
-
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const fs = require("fs");
-const path = require("path");
-
-const app = express();
-const PORT = process.env.PORT || 3001;
-app.use(cors());
-app.use(express.json());
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import fs from "fs";
+import path from "path";
+import { getDynamicPrompt } from "./prompts/dynamic.js";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.0-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-// Load RTFC-based system prompt
-const systemPrompt = fs.readFileSync(
-    path.join(__dirname, "prompts", "systemPrompt.txt"),
-    "utf8"
-);
+/**
+ * Load prompt file by name
+ */
+function loadPrompt(fileName) {
+  const filePath = path.join("src", "prompts", fileName);
+  return fs.readFileSync(filePath, "utf8");
+}
 
-const { getDynamicPrompt } = require("./prompts/dynamic.js");
-
+/**
+ * Main runner
+ */
 async function run() {
-  const query = process.argv.slice(2).join(" ");
-  const dynamicPrompt = getDynamicPrompt(query);
+  const args = process.argv.slice(2);
 
-  const result = await model.generateContent(dynamicPrompt);
-  console.log(result.response.text());
+  if (args.length < 2) {
+    console.log("⚠️ Usage: node src/index.js <mode> <question>");
+    console.log("Modes: system | zeroShot | oneShot | multiShot | dynamic | cot");
+    console.log("Example: node src/index.js zeroShot 'What is dark matter?'");
+    process.exit(1);
+  }
+
+  const mode = args[0];
+  const query = args.slice(1).join(" ");
+
+  let finalPrompt = "";
+
+  switch (mode) {
+    case "system":
+      finalPrompt = loadPrompt("systemPrompt.txt").replace("${user_query}", query);
+      break;
+    case "zeroShot":
+      finalPrompt = loadPrompt("zeroShot.txt").replace("${user_query}", query);
+      break;
+    case "oneShot":
+      finalPrompt = loadPrompt("oneShot.txt").replace("${user_query}", query);
+      break;
+    case "multiShot":
+      finalPrompt = loadPrompt("multiShot.txt").replace("${user_query}", query);
+      break;
+    case "dynamic":
+      finalPrompt = getDynamicPrompt(query);
+      break;
+    case "cot":
+      finalPrompt = loadPrompt("chainOfThought.txt").replace("${user_query}", query);
+      break;
+    default:
+      console.log("Invalid mode. Use: system | zeroShot | oneShot | multiShot | dynamic | cot");
+      process.exit(1);
+  }
+
+  try {
+    const result = await model.generateContent(finalPrompt);
+    console.log("\n🌌 Answer:");
+    console.log(result.response.text());
+  } catch (err) {
+    console.error("Error while generating response:", err.message);
+  }
 }
 
 run();
-
-
-app.post('/api/explain', async (req, res) => {
-  const { term } = req.body;
-  if (!term) return res.status(400).json({ error: 'Missing term' });
-  try {
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `${systemPrompt}\n\nUser Question: ${term}`,
-            },
-          ],
-        },
-      ],
-    });
-    res.json({ prompt: `${systemPrompt}\n\nUser Question: ${term}`, aiText: result.response.text() });
-  } catch (err) {
-    console.error("Error while generating response:", err);
-    res.status(500).json({ error: 'Gemini API error', details: err.message });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`COSMOS backend running on port ${PORT}`);
-});

@@ -1,3 +1,9 @@
+One-Shot Prompt for SpaceSense
+
+Instruction:
+Look at the single example below, then answer the next user question
+in the same style and structure.
+
 Example:
 Q: What is gravity?
 A:
@@ -5,3 +11,7 @@ A:
 2. Why it matters: It keeps planets in orbit and gives us weight.
 3. Analogy: Like an invisible magnet.
 4. Summary: Gravity is the universal force of attraction.
+
+Now your turn:
+
+User Question: ${user_query}
