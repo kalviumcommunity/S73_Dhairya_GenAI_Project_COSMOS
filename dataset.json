@@ -1,0 +1,22 @@
+[
+  {
+    "query": "What is a black hole?",
+    "expected": "A region in space where gravity is so strong that not even light can escape."
+  },
+  {
+    "query": "What is gravity?",
+    "expected": "A force that pulls objects toward each other."
+  },
+  {
+    "query": "What is a galaxy?",
+    "expected": "A system of stars, dust, and planets bound together by gravity."
+  },
+  {
+    "query": "What is a supernova?",
+    "expected": "A powerful explosion of a dying massive star."
+  },
+  {
+    "query": "What is dark matter?",
+    "expected": "An invisible form of matter that doesn’t emit light but has gravity."
+  }
+]

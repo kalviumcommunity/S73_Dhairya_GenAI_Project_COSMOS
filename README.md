@@ -1,133 +1,48 @@
 # 🌌 COSMOS – Cognitive Ontology System for Mapping Outer Space
 
-**COSMOS** is an **AI-powered glossary system** built with **Next.js (frontend)** and **Node.js serverless functions (backend)** that maps, explains, and relates **space science concepts** using the **Google Gemini family of models**.
+SpaceSense is a **Generative AI-based educational assistant** that explains **space science concepts** in a simple, well-structured way using the **Google Gemini-1.5-Flash API**.  
+
+This project demonstrates multiple **advanced prompting strategies** (RTFC, Zero-shot, One-shot, Multi-shot, Dynamic, Chain-of-Thought) along with an **evaluation pipeline** for testing correctness and quality of model responses.
 
 ---
 
 ## Project Idea
 
-The goal of COSMOS is to provide **clear, structured explanations of astronomy and space science terms**.
-
-For example, when a user asks *“What is a Nebula?”*:
-
-1. The query is processed using **embeddings and similarity functions** to find the closest glossary entry.
-2. A **prompting strategy** (Zero-Shot, Few-Shot, Chain-of-Thought, etc.) is applied.
-3. The Gemini model generates a **structured JSON output** containing the explanation, difficulty level, and related terms.
-
-This allows users to **compare how different prompting techniques shape the AI’s response**, making COSMOS both an interactive glossary and a learning lab for GenAI.
+The goal is to make space science concepts **easy to understand** for students, enthusiasts, and learners.  
+Instead of searching scattered resources, users can query the system and get **clear, structured, and accurate answers**.
 
 ---
 
-## Features & Concepts
+## Implementation
 
-### Prompting Strategies
+### Tech Stack
+- **Backend:** Node.js + Express.js
+- **Frontend (optional/simple):** HTML/CSS/JS input box
+- **LLM API:** Gemini-1.5-Flash
+- **Evaluation:** Custom Judge Prompt + JSON test runner
 
-* **Zero-Shot Prompting** → Direct explanation with no examples.
-* **One-Shot Prompting** → Uses a single example to guide the response.
-* **Few-Shot Prompting** → Provides multiple examples for consistency.
-* **Chain-of-Thought (CoT)** → Encourages step-by-step reasoning.
-* **Dynamic Prompting** → Adapts prompts based on input complexity.
-* **RTFC Framework** (Role, Task, Format, Constraints) for robust system + user prompting.
-
-### Embeddings & Similarity
-
-* Glossary terms stored as **text embeddings**.
-* Supports multiple **similarity functions**:
-
-  * Cosine Similarity
-  * Dot Product
-  * Euclidean (L2) Distance
-
-### Intelligent Glossary
-
-* Queries retrieve the **most relevant term** using embeddings.
-* Related concepts are suggested to encourage exploration.
-* Output is **structured** (JSON-like) for consistency and clarity.
-
-### Model Controls
-
-* **Temperature** for creativity.
-* **Top-K & Top-P Sampling** for balance between determinism and diversity.
-* **Stop Sequences** to ensure clean, bounded outputs.
-* Token usage logging for evaluation.
-
-### Automated Evaluation Pipeline
-
-* Includes a dataset of sample queries with expected terms.
-* A **judge prompt** scores correctness and clarity.
-* Framework automatically runs evaluation and computes accuracy.
+### Flow
+1. **User Input:** User asks a space-related question.  
+2. **System Prompt:** Ensures responses are structured, simple, and accurate.  
+3. **User Prompt:** Contains the query.  
+4. **Model Output:** Gemini generates structured explanation.  
+5. **Evaluation Pipeline:** Validates answers against expected dataset.
 
 ---
 
-## Workflow
-
-1. **User Query** → e.g., “Tell me about black holes.”
-2. **Embedding Generation** → Query converted to a vector.
-3. **Similarity Search** → Compared against glossary embeddings.
-4. **Relevant Term Retrieved** → e.g., *Black Hole*.
-5. **Prompting Applied** → Selected strategy builds the AI request.
-6. **Gemini API Call** → Returns structured JSON.
-7. **Result Displayed** → Clean UI with definition, difficulty, and related terms.
+## Prompting Techniques Implemented
+1. **RTFC Framework:** Role, Task, Format, Context prompts.  
+2. **Zero-Shot Prompting:** No examples, just direct instructions.  
+3. **One-Shot Prompting:** One example provided.  
+4. **Multi-Shot Prompting:** Multiple examples provided.  
+5. **Dynamic Prompting:** System adjusts based on user query complexity.  
+6. **Chain-of-Thought Prompting:** Encourages step-by-step reasoning.
 
 ---
 
-## Example
-
-**Input:** `Tell me about a Nebula.`
-
-**Output (JSON):**
-
-```json
-{
-  "term": "Nebula",
-  "definition": "A nebula is a giant cloud of dust and gas in space, often serving as a stellar nursery where new stars are born.",
-  "difficulty": "Beginner",
-  "related": ["Star Formation", "Supernova", "Galaxy"]
-}
-```
+## Evaluation Pipeline
+- Dataset of 5+ queries with expected outputs.  
+- Judge Prompt compares model response with expected answer.  
+- Automated script runs all test cases and logs accuracy.
 
 ---
-
-## Evaluation Dataset
-
-| Query                | Expected Term |
-| -------------------- | ------------- |
-| What is a Nebula?    | Nebula        |
-| Define a Black Hole  | Black Hole    |
-| Explain Supernova    | Supernova     |
-| What are Exoplanets? | Exoplanet     |
-| Define Galaxy        | Galaxy        |
-
----
-
-## Getting Started
-
-1. **Install dependencies:**
-
-   ```bash
-   npm install
-   ```
-
-2. **Set up environment:**
-   Create a `.env.local` file in the root:
-
-   ```
-   GEMINI_API_KEY=your_api_key_here
-   ```
-
-3. **Run development server:**
-
-   ```bash
-   npm run dev
-   ```
-
-4. **Open app:**
-   Visit [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## Conclusion
-
-COSMOS is more than a glossary—it’s a **GenAI learning playground**.
-It demonstrates how to integrate **prompting techniques, embeddings, vector search, evaluation pipelines, and structured outputs** into one cohesive application, powered by **Next.js, Node.js, and Google Gemini**.
-
