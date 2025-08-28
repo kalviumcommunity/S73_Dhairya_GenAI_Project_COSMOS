@@ -56,27 +56,36 @@ async function run() {
   const args = process.argv.slice(2);
 
   if (args.length < 2) {
-    console.log("⚠️ Usage: node src/index.js <mode> <question> [temperature] [topP] [topK]");
+    console.log("⚠️ Usage: node src/index.js <mode> <question> [temperature] [topP] [topK] [stopSequence]");
     console.log("Modes: system | zeroShot | oneShot | multiShot | dynamic | cot");
-    console.log("Example: node src/index.js zeroShot 'What is dark matter?' 0.7 0.9 40");
+    console.log("Example: node src/index.js zeroShot 'What is dark matter?' 0.7 0.9 40 ###");
     process.exit(1);
   }
 
   const mode = args[0];
-  // Question is everything except last 2–3 args (which are numbers)
   const possibleNumbers = args.slice(1).filter(arg => !isNaN(parseFloat(arg)));
-  const questionArgs = args.slice(1, args.length - possibleNumbers.length);
-  const query = questionArgs.join(" ");
+  const possibleStopSeq = args.slice(1).filter(arg => isNaN(parseFloat(arg)) && arg !== mode);
+
+  // Question is all string args except stop sequence
+  const query = possibleStopSeq.length > 0
+    ? possibleStopSeq.slice(0, -1).join(" ")
+    : possibleStopSeq.join(" ");
 
   // Defaults
   let temperature = 0.7;
   let topP = 1.0;
   let topK = 40;
+  let stopSequence = null;
 
   // Parse numeric args
   if (possibleNumbers.length >= 1) temperature = parseFloat(possibleNumbers[0]);
   if (possibleNumbers.length >= 2) topP = parseFloat(possibleNumbers[1]);
   if (possibleNumbers.length >= 3) topK = parseInt(possibleNumbers[2]);
+
+  // Stop sequence (last non-numeric arg if provided)
+  if (possibleStopSeq.length > 0) {
+    stopSequence = possibleStopSeq[possibleStopSeq.length - 1];
+  }
 
   let finalPrompt = "";
 
@@ -105,20 +114,22 @@ async function run() {
   }
 
   try {
-    // Temperature + Top-p + Top-k applied
+    // Temperature + Top-p + Top-k + Stop Sequence applied
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: finalPrompt }] }],
       generationConfig: {
-        temperature: temperature, // randomness
-        topP: topP,               // nucleus sampling
-        topK: topK,               // restrict choices
+        temperature: temperature,
+        topP: topP,
+        topK: topK,
+        stopSequences: stopSequence ? [stopSequence] : undefined,
         maxOutputTokens: 512,
       },
     });
 
     console.log(`\n🌡️ Temperature used: ${temperature}`);
-    console.log(`Top-p used: ${topP}`);
-    console.log(`Top-k used: ${topK}`);
+    console.log(`🎯 Top-p used: ${topP}`);
+    console.log(`🔢 Top-k used: ${topK}`);
+    if (stopSequence) console.log(`⛔ Stop sequence used: "${stopSequence}"`);
     console.log("\n🌌 Answer:");
     console.log(result.response.text());
 
