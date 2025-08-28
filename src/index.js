@@ -5,6 +5,7 @@ import { getDynamicPrompt } from "./prompts/dynamic.js";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const embeddingModel = genAI.getGenerativeModel({ model: "embedding-001" });
 
 let sessionTokenCount = { input: 0, output: 0, total: 0 };
 
@@ -37,7 +38,7 @@ async function run() {
   const args = process.argv.slice(2);
   if (args.length < 2) {
     console.log("⚠️ Usage: node src/index.js <mode> <question>");
-    console.log("Modes: system | zeroShot | oneShot | multiShot | dynamic | cot | structured | functionCall");
+    console.log("Modes: system | zeroShot | oneShot | multiShot | dynamic | cot | structured | functionCall | embeddings");
     process.exit(1);
   }
 
@@ -70,6 +71,9 @@ async function run() {
     case "functionCall":
       finalPrompt = query;
       break;
+    case "embeddings":
+      finalPrompt = query;
+      break;
     default:
       console.log("Invalid mode.");
       process.exit(1);
@@ -78,8 +82,15 @@ async function run() {
   try {
     let result;
 
-    if (mode === "functionCall") {
-      // Example function definitions
+    if (mode === "embeddings") {
+      result = await embeddingModel.embedContent(query);
+
+      console.log("\n🧩 Embedding Result:");
+      const vector = result.embedding.values;
+      console.log(`Vector length: ${vector.length}`);
+      console.log("First 10 dimensions:", vector.slice(0, 10));
+    } else if (mode === "functionCall") {
+      // Example function calling logic (from earlier step)
       const functions = [
         {
           name: "getWeather",
@@ -108,22 +119,19 @@ async function run() {
 
       result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: finalPrompt }] }],
-        tools: [{ functionDeclarations: functions }], 
-        generationConfig: {
-          temperature: 0,
-          maxOutputTokens: 256,
-        },
+        tools: [{ functionDeclarations: functions }],
+        generationConfig: { temperature: 0, maxOutputTokens: 256 },
       });
 
       console.log("\n🔧 Function Call Response:");
       console.log(JSON.stringify(result.response.candidates[0].content, null, 2));
+      logTokens(result.response.usageMetadata);
     } else {
       result = await model.generateContent(finalPrompt);
       console.log("\n🌌 Answer:");
       console.log(result.response.text());
+      logTokens(result.response.usageMetadata);
     }
-
-    logTokens(result.response.usageMetadata);
   } catch (err) {
     console.error("Error:", err.message);
   }
