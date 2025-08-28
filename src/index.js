@@ -48,7 +48,7 @@ function logTokens(usage) {
 }
 
 /**
- * Compute cosine similarity between two vectors
+ * Cosine similarity
  */
 function cosineSim(vecA, vecB) {
   const dot = vecA.reduce((sum, v, i) => sum + v * vecB[i], 0);
@@ -58,11 +58,18 @@ function cosineSim(vecA, vecB) {
 }
 
 /**
- * Compute Euclidean Distance between two vectors
+ * Euclidean Distance
  */
 function euclideanDistance(vecA, vecB) {
   const sumSquares = vecA.reduce((sum, v, i) => sum + Math.pow(v - vecB[i], 2), 0);
   return Math.sqrt(sumSquares);
+}
+
+/**
+ * Dot Product Similarity
+ */
+function dotProduct(vecA, vecB) {
+  return vecA.reduce((sum, v, i) => sum + v * vecB[i], 0);
 }
 
 /**
@@ -87,8 +94,9 @@ async function searchVectorDB(query, topK = 3, metric = "cosine") {
     if (metric === "cosine") {
       score = cosineSim(queryVector, item.vector);
     } else if (metric === "euclidean") {
-      // Convert distance to similarity (smaller distance = higher similarity)
-      score = 1 / (1 + euclideanDistance(queryVector, item.vector));
+      score = 1 / (1 + euclideanDistance(queryVector, item.vector)); // normalize
+    } else if (metric === "dot") {
+      score = dotProduct(queryVector, item.vector);
     }
     return { ...item, score };
   });
@@ -114,12 +122,14 @@ async function run() {
   const tempArg = args[args.length - 4];
   const topPArg = args[args.length - 3];
   const topKArg = args[args.length - 2];
-  const metricArg = args[args.length - 1]; // cosine | euclidean
+  const metricArg = args[args.length - 1]; // cosine | euclidean | dot
 
   let temperature = isNaN(parseFloat(tempArg)) ? 0.7 : parseFloat(tempArg);
   let topP = isNaN(parseFloat(topPArg)) ? 1.0 : parseFloat(topPArg);
   let topK = isNaN(parseInt(topKArg)) ? 40 : parseInt(topKArg);
-  let metric = ["cosine", "euclidean"].includes(metricArg) ? metricArg : "cosine";
+  let metric = ["cosine", "euclidean", "dot"].includes(metricArg)
+    ? metricArg
+    : "cosine";
 
   let finalPrompt = "";
 
@@ -165,7 +175,7 @@ async function run() {
         topP,
         topK,
         maxOutputTokens: 512,
-        stopSequences: ["### END"], 
+        stopSequences: ["### END"], // example stop
       },
     });
 
