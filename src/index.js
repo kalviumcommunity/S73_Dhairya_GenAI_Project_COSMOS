@@ -56,28 +56,27 @@ async function run() {
   const args = process.argv.slice(2);
 
   if (args.length < 2) {
-    console.log("⚠️ Usage: node src/index.js <mode> <question> [temperature] [topP]");
+    console.log("⚠️ Usage: node src/index.js <mode> <question> [temperature] [topP] [topK]");
     console.log("Modes: system | zeroShot | oneShot | multiShot | dynamic | cot");
-    console.log("Example: node src/index.js zeroShot 'What is dark matter?' 0.7 0.9");
+    console.log("Example: node src/index.js zeroShot 'What is dark matter?' 0.7 0.9 40");
     process.exit(1);
   }
 
   const mode = args[0];
-  const query = args.slice(1, -2).join(" "); // leave space for temp + topP
-  const tempArg = args[args.length - 2];
-  const topPArg = args[args.length - 1];
+  // Question is everything except last 2–3 args (which are numbers)
+  const possibleNumbers = args.slice(1).filter(arg => !isNaN(parseFloat(arg)));
+  const questionArgs = args.slice(1, args.length - possibleNumbers.length);
+  const query = questionArgs.join(" ");
 
   // Defaults
   let temperature = 0.7;
   let topP = 1.0;
+  let topK = 40;
 
-  // Parse args
-  if (!isNaN(parseFloat(tempArg))) {
-    temperature = parseFloat(tempArg);
-  }
-  if (!isNaN(parseFloat(topPArg))) {
-    topP = parseFloat(topPArg);
-  }
+  // Parse numeric args
+  if (possibleNumbers.length >= 1) temperature = parseFloat(possibleNumbers[0]);
+  if (possibleNumbers.length >= 2) topP = parseFloat(possibleNumbers[1]);
+  if (possibleNumbers.length >= 3) topK = parseInt(possibleNumbers[2]);
 
   let finalPrompt = "";
 
@@ -106,18 +105,20 @@ async function run() {
   }
 
   try {
-    // Temperature + Top-p applied
+    // Temperature + Top-p + Top-k applied
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: finalPrompt }] }],
       generationConfig: {
-        temperature: temperature,
-        topP: topP,
+        temperature: temperature, // randomness
+        topP: topP,               // nucleus sampling
+        topK: topK,               // restrict choices
         maxOutputTokens: 512,
       },
     });
 
     console.log(`\n🌡️ Temperature used: ${temperature}`);
     console.log(`Top-p used: ${topP}`);
+    console.log(`Top-k used: ${topK}`);
     console.log("\n🌌 Answer:");
     console.log(result.response.text());
 
