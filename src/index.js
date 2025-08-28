@@ -48,7 +48,14 @@ function logTokens(usage) {
 }
 
 /**
- * Compute cosine similarity between two vectors
+ * Cosine similarity between two vectors
+ * Formula: cos(θ) = (A · B) / (||A|| * ||B||)
+ *
+ * - Dot product (A·B) measures alignment
+ * - Magnitudes (||A|| and ||B||) normalize for length
+ * - Result ranges from -1 (opposite) to +1 (identical direction)
+ *
+ * With embeddings, higher cosine similarity means more semantic similarity.
  */
 function cosineSim(vecA, vecB) {
   const dot = vecA.reduce((sum, v, i) => sum + v * vecB[i], 0);
@@ -58,7 +65,7 @@ function cosineSim(vecA, vecB) {
 }
 
 /**
- * Store text in vector DB
+ * Store text in vector DB (embedding + metadata)
  */
 async function storeInVectorDB(text, metadata = {}) {
   const embedding = await embeddingModel.embedContent(text);
@@ -68,7 +75,7 @@ async function storeInVectorDB(text, metadata = {}) {
 }
 
 /**
- * Search vector DB
+ * Search vector DB using cosine similarity
  */
 async function searchVectorDB(query, topK = 3) {
   const embedding = await embeddingModel.embedContent(query);
@@ -131,7 +138,7 @@ async function run() {
       return;
     case "search":
       const results = await searchVectorDB(query, 3);
-      console.log("\n Vector DB search results:");
+      console.log("\n🔎 Vector DB search results (via cosine similarity):");
       results.forEach((r, i) =>
         console.log(`${i + 1}. ${r.text} (score=${r.score.toFixed(3)})`)
       );
