@@ -1,14 +1,22 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import fs from "fs";
-import path from "path";
-import { getDynamicPrompt } from "./prompts/dynamic.js";
+// Load env and imports
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const fs = require("fs");
+const path = require("path");
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+app.use(cors());
+app.use(express.json());
 
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 const embeddingModel = genAI.getGenerativeModel({ model: "embedding-001" });
 
-// Running total of tokens for session
+// Running token usage counter
 let sessionTokenCount = { input: 0, output: 0, total: 0 };
 
 // Mock vector DB (replace with Pinecone, Weaviate, or FAISS in production)
@@ -18,7 +26,7 @@ let vectorDB = [];
  * Load prompt file by name
  */
 function loadPrompt(fileName) {
-  const filePath = path.join("src", "prompts", fileName);
+  const filePath = path.join(__dirname, "prompts", fileName);
   return fs.readFileSync(filePath, "utf8");
 }
 
@@ -48,7 +56,7 @@ function logTokens(usage) {
 }
 
 /**
- * Cosine similarity
+ * Similarity metrics
  */
 function cosineSim(vecA, vecB) {
   const dot = vecA.reduce((sum, v, i) => sum + v * vecB[i], 0);
@@ -56,24 +64,16 @@ function cosineSim(vecA, vecB) {
   const magB = Math.sqrt(vecB.reduce((sum, v) => sum + v * v, 0));
   return dot / (magA * magB);
 }
-
-/**
- * Euclidean Distance
- */
 function euclideanDistance(vecA, vecB) {
   const sumSquares = vecA.reduce((sum, v, i) => sum + Math.pow(v - vecB[i], 2), 0);
   return Math.sqrt(sumSquares);
 }
-
-/**
- * Dot Product Similarity
- */
 function dotProduct(vecA, vecB) {
   return vecA.reduce((sum, v, i) => sum + v * vecB[i], 0);
 }
 
 /**
- * Store text in vector DB
+ * Store and search vector DB
  */
 async function storeInVectorDB(text, metadata = {}) {
   const embedding = await embeddingModel.embedContent(text);
@@ -81,10 +81,6 @@ async function storeInVectorDB(text, metadata = {}) {
   vectorDB.push({ vector, text, metadata });
   console.log(`Stored text in vector DB: "${text.slice(0, 40)}..."`);
 }
-
-/**
- * Search vector DB with choice of similarity metric
- */
 async function searchVectorDB(query, topK = 3, metric = "cosine") {
   const embedding = await embeddingModel.embedContent(query);
   const queryVector = embedding.embedding.values;
@@ -105,10 +101,43 @@ async function searchVectorDB(query, topK = 3, metric = "cosine") {
 }
 
 /**
- * Main runner
+ * Express API route
+ */
+const systemPrompt = fs.readFileSync(
+  path.join(__dirname, "prompts", "systemPrompt.txt"),
+  "utf8"
+);
+
+app.post("/api/explain", async (req, res) => {
+  const { term } = req.body;
+  if (!term) return res.status(400).json({ error: "Missing term" });
+
+  try {
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `${systemPrompt}\n\nUser Question: ${term}` }],
+        },
+      ],
+    });
+
+    res.json({
+      prompt: `${systemPrompt}\n\nUser Question: ${term}`,
+      aiText: result.response.text(),
+    });
+  } catch (err) {
+    console.error("Error while generating response:", err);
+    res.status(500).json({ error: "Gemini API error", details: err.message });
+  }
+});
+
+/**
+ * CLI runner
  */
 async function run() {
   const args = process.argv.slice(2);
+  if (args.length === 0) return; // don’t run CLI if no args (so server can still start)
 
   if (args.length < 2) {
     console.log(
@@ -118,11 +147,11 @@ async function run() {
   }
 
   const mode = args[0];
-  const query = args.slice(1, -4).join(" "); // leave space for params
+  const query = args.slice(1, -4).join(" ") || args[1];
   const tempArg = args[args.length - 4];
   const topPArg = args[args.length - 3];
   const topKArg = args[args.length - 2];
-  const metricArg = args[args.length - 1]; // cosine | euclidean | dot
+  const metricArg = args[args.length - 1];
 
   let temperature = isNaN(parseFloat(tempArg)) ? 0.7 : parseFloat(tempArg);
   let topP = isNaN(parseFloat(topPArg)) ? 1.0 : parseFloat(topPArg);
@@ -146,9 +175,6 @@ async function run() {
     case "multiShot":
       finalPrompt = loadPrompt("multiShot.txt").replace("${user_query}", query);
       break;
-    case "dynamic":
-      finalPrompt = getDynamicPrompt(query);
-      break;
     case "cot":
       finalPrompt = loadPrompt("chainOfThought.txt").replace("${user_query}", query);
       break;
@@ -157,7 +183,7 @@ async function run() {
       return;
     case "search":
       const results = await searchVectorDB(query, 3, metric);
-      console.log(`\n Vector DB search results using ${metric} similarity:`);
+      console.log(`\nVector DB search results using ${metric} similarity:`);
       results.forEach((r, i) =>
         console.log(`${i + 1}. ${r.text} (score=${r.score.toFixed(3)})`)
       );
@@ -175,7 +201,7 @@ async function run() {
         topP,
         topK,
         maxOutputTokens: 512,
-        stopSequences: ["### END"], // example stop
+        stopSequences: ["### END"],
       },
     });
 
@@ -183,12 +209,15 @@ async function run() {
     console.log("\n🌌 Answer:");
     console.log(result.response.text());
 
-    // Token logging
     logTokens(result.response.usageMetadata);
-
   } catch (err) {
     console.error("⚠️ Error generating response:", err.message);
   }
 }
 
 run();
+
+// Start express server
+app.listen(PORT, () => {
+  console.log(`✅ COSMOS backend running on http://localhost:${PORT}`);
+});

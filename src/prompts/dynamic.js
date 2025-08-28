@@ -1,11 +1,11 @@
-import fs from "fs";
-import path from "path";
+const fs = require("fs");
+const path = require("path");
 
 /**
  * Returns a dynamic prompt by reading from dynamicPrompt.txt
  * and replacing ${user_query} with the actual query.
  */
-export function getDynamicPrompt(query) {
+function getDynamicPrompt(query) {
   // Load dynamicPrompt.txt content
   const filePath = path.join("src", "prompts", "dynamicPrompt.txt");
   const template = fs.readFileSync(filePath, "utf8");
@@ -33,3 +33,4 @@ export function getDynamicPrompt(query) {
       );
   }
 }
+module.exports = { getDynamicPrompt };

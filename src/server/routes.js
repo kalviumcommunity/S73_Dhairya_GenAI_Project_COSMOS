@@ -1,33 +1,31 @@
-import express from "express";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import fs from "fs";
-import path from "path";
+const express = require('express');
+const { run, getPrompt } = require('../index');
 
 const router = express.Router();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-const systemPrompt = fs.readFileSync(
-  path.join("src", "prompts", "systemPrompt.txt"),
-  "utf8"
-);
+// This route handles the prompt from the frontend
+router.post('/prompt', async (req, res) => {
+    try {
+        // The new frontend sends 'prompt' and 'promptType' in the body
+        const { prompt, promptType } = req.body;
 
-router.post("/ask", async (req, res) => {
-  try {
-    const { query } = req.body;
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${systemPrompt}\n\nUser Question: ${query}` }],
-        },
-      ],
-    });
+        if (!prompt || !promptType) {
+            return res.status(400).json({ error: 'Prompt and promptType are required.' });
+        }
 
-    res.json({ answer: result.response.text() });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+        // Get the full prompt content based on the selected type
+        const fullPrompt = await getPrompt(promptType, prompt);
+        
+        // Run the generative model with the full prompt
+        const modelResponse = await run(fullPrompt);
+        
+        // Send the model's response back to the frontend
+        res.json({ response: modelResponse });
+
+    } catch (error) {
+        console.error('Error processing prompt:', error);
+        res.status(500).json({ error: 'Failed to process prompt.' });
+    }
 });
 
-export default router;
+module.exports = router;

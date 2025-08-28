@@ -1,17 +1,92 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>COSMOS - Ask AI</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>COSMOS — Dark Space • AI</title>
+
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Oxanium:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app">
-    <h1>🌌 COSMOS</h1>
-    <input id="query" placeholder="Ask a space question..." />
-    <button onclick="askQuestion()">Ask</button>
-    <div id="response"></div>
+  <div class="space-bg" aria-hidden="true"></div>
+
+  <div class="wrap">
+    <div class="card" role="main">
+
+      <div class="panel-left" aria-labelledby="app-title">
+        <div class="brand">
+          <div class="logo">✦</div>
+          <div>
+            <h1 id="app-title">COSMOS</h1>
+            <p style="margin:0;color:var(--muted);font-size:13px">Explore the unexplored</p>
+          </div>
+        </div>
+
+        <p class="subtitle">Cognitive Ontology System for Mapping Outer Space</p>
+
+        <form id="prompt-form" class="controls">
+          <div>
+            <label for="prompt-type">Prompt Technique</label>
+            <select id="prompt-type" aria-label="Prompt Technique">
+              <option value="zeroShot">Zero-Shot</option>
+              <option value="oneShot">One-Shot</option>
+              <option value="multiShot">Multi-Shot</option>
+              <option value="chainOfThought">Chain of Thought</option>
+              <option value="dynamic">Dynamic</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="prompt-input">Prompt</label>
+            <textarea id="prompt-input" rows="6" placeholder="Explain quantum entanglement like I'm five..."></textarea>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn" id="generate" type="submit">Generate</button>
+            <button class="btn secondary" id="clear" type="button">Clear</button>
+          </div>
+
+          <div style="margin-top:8px;font-size:12px;color:var(--muted)">Tip: Try short, clear prompts for concise answers. Add "in simple terms" to make it beginner-friendly.</div>
+        </form>
+
+      </div>
+
+      <div class="panel-right">
+        <div class="meta">
+          <div class="chips">
+            <div class="chip">Model: Gemini</div>
+            <div class="chip">Theme: Dark • Galaxy</div>
+          </div>
+          <div style="color:var(--muted);font-size:13px">Response</div>
+        </div>
+
+        <div class="resp-card" id="response-card" aria-live="polite">
+          <div id="loaderArea" style="display:none;text-align:center;padding:18px">
+            <div class="loader" aria-hidden="true">
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+            </div>
+            <div style="color:var(--muted);margin-top:8px;font-size:13px">Rendering cosmic answer…</div>
+          </div>
+
+          <pre id="response-text">Welcome to COSMOS — type a prompt and hit Generate to get started.</pre>
+        </div>
+
+        <footer>Built with ✨ • Keep exploring</footer>
+
+      </div>
+
+      <div class="planet" aria-hidden="true"></div>
+
+    </div>
   </div>
+
   <script src="script.js"></script>
 </body>
 </html>
