@@ -48,14 +48,7 @@ function logTokens(usage) {
 }
 
 /**
- * Cosine similarity between two vectors
- * Formula: cos(θ) = (A · B) / (||A|| * ||B||)
- *
- * - Dot product (A·B) measures alignment
- * - Magnitudes (||A|| and ||B||) normalize for length
- * - Result ranges from -1 (opposite) to +1 (identical direction)
- *
- * With embeddings, higher cosine similarity means more semantic similarity.
+ * Compute cosine similarity between two vectors
  */
 function cosineSim(vecA, vecB) {
   const dot = vecA.reduce((sum, v, i) => sum + v * vecB[i], 0);
@@ -65,7 +58,15 @@ function cosineSim(vecA, vecB) {
 }
 
 /**
- * Store text in vector DB (embedding + metadata)
+ * Compute Euclidean Distance between two vectors
+ */
+function euclideanDistance(vecA, vecB) {
+  const sumSquares = vecA.reduce((sum, v, i) => sum + Math.pow(v - vecB[i], 2), 0);
+  return Math.sqrt(sumSquares);
+}
+
+/**
+ * Store text in vector DB
  */
 async function storeInVectorDB(text, metadata = {}) {
   const embedding = await embeddingModel.embedContent(text);
@@ -75,16 +76,22 @@ async function storeInVectorDB(text, metadata = {}) {
 }
 
 /**
- * Search vector DB using cosine similarity
+ * Search vector DB with choice of similarity metric
  */
-async function searchVectorDB(query, topK = 3) {
+async function searchVectorDB(query, topK = 3, metric = "cosine") {
   const embedding = await embeddingModel.embedContent(query);
   const queryVector = embedding.embedding.values;
 
-  const scored = vectorDB.map((item) => ({
-    ...item,
-    score: cosineSim(queryVector, item.vector),
-  }));
+  const scored = vectorDB.map((item) => {
+    let score;
+    if (metric === "cosine") {
+      score = cosineSim(queryVector, item.vector);
+    } else if (metric === "euclidean") {
+      // Convert distance to similarity (smaller distance = higher similarity)
+      score = 1 / (1 + euclideanDistance(queryVector, item.vector));
+    }
+    return { ...item, score };
+  });
 
   return scored.sort((a, b) => b.score - a.score).slice(0, topK);
 }
@@ -97,20 +104,22 @@ async function run() {
 
   if (args.length < 2) {
     console.log(
-      "⚠️ Usage: node src/index.js <mode> <question> [temperature] [topP] [topK]"
+      "⚠️ Usage: node src/index.js <mode> <question> [temperature] [topP] [topK] [metric]"
     );
     process.exit(1);
   }
 
   const mode = args[0];
-  const query = args.slice(1, -3).join(" "); // leave space for params
-  const tempArg = args[args.length - 3];
-  const topPArg = args[args.length - 2];
-  const topKArg = args[args.length - 1];
+  const query = args.slice(1, -4).join(" "); // leave space for params
+  const tempArg = args[args.length - 4];
+  const topPArg = args[args.length - 3];
+  const topKArg = args[args.length - 2];
+  const metricArg = args[args.length - 1]; // cosine | euclidean
 
   let temperature = isNaN(parseFloat(tempArg)) ? 0.7 : parseFloat(tempArg);
   let topP = isNaN(parseFloat(topPArg)) ? 1.0 : parseFloat(topPArg);
   let topK = isNaN(parseInt(topKArg)) ? 40 : parseInt(topKArg);
+  let metric = ["cosine", "euclidean"].includes(metricArg) ? metricArg : "cosine";
 
   let finalPrompt = "";
 
@@ -137,8 +146,8 @@ async function run() {
       await storeInVectorDB(query, { source: "user" });
       return;
     case "search":
-      const results = await searchVectorDB(query, 3);
-      console.log("\n🔎 Vector DB search results (via cosine similarity):");
+      const results = await searchVectorDB(query, 3, metric);
+      console.log(`\n Vector DB search results using ${metric} similarity:`);
       results.forEach((r, i) =>
         console.log(`${i + 1}. ${r.text} (score=${r.score.toFixed(3)})`)
       );
@@ -156,7 +165,7 @@ async function run() {
         topP,
         topK,
         maxOutputTokens: 512,
-        stopSequences: ["### END"], // example stop
+        stopSequences: ["### END"], 
       },
     });
 
