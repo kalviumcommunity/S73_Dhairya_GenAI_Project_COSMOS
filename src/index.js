@@ -56,23 +56,27 @@ async function run() {
   const args = process.argv.slice(2);
 
   if (args.length < 2) {
-    console.log("⚠️ Usage: node src/index.js <mode> <question> [temperature]");
+    console.log("⚠️ Usage: node src/index.js <mode> <question> [temperature] [topP]");
     console.log("Modes: system | zeroShot | oneShot | multiShot | dynamic | cot");
-    console.log("Example: node src/index.js zeroShot 'What is dark matter?' 0.7");
+    console.log("Example: node src/index.js zeroShot 'What is dark matter?' 0.7 0.9");
     process.exit(1);
   }
 
   const mode = args[0];
-  const query = args.slice(1, -1).join(" ");
-  let tempArg = args[args.length - 1];
+  const query = args.slice(1, -2).join(" "); // leave space for temp + topP
+  const tempArg = args[args.length - 2];
+  const topPArg = args[args.length - 1];
 
-  // If last arg is numeric → treat as temperature
-  let temperature = 0.7; // default
+  // Defaults
+  let temperature = 0.7;
+  let topP = 1.0;
+
+  // Parse args
   if (!isNaN(parseFloat(tempArg))) {
     temperature = parseFloat(tempArg);
-  } else {
-    // no temperature provided, last arg is part of query
-    temperature = 0.7;
+  }
+  if (!isNaN(parseFloat(topPArg))) {
+    topP = parseFloat(topPArg);
   }
 
   let finalPrompt = "";
@@ -102,20 +106,22 @@ async function run() {
   }
 
   try {
-    // Now include temperature
+    // Temperature + Top-p applied
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: finalPrompt }] }],
       generationConfig: {
-        temperature: temperature, // randomness control
-        maxOutputTokens: 512, // optional: limit
+        temperature: temperature,
+        topP: topP,
+        maxOutputTokens: 512,
       },
     });
 
     console.log(`\n🌡️ Temperature used: ${temperature}`);
+    console.log(`Top-p used: ${topP}`);
     console.log("\n🌌 Answer:");
     console.log(result.response.text());
 
-    // 🔹 Log token usage
+    // Log token usage
     logTokens(result.response.usageMetadata);
 
   } catch (err) {
