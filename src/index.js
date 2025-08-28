@@ -34,12 +34,10 @@ function logTokens(usage) {
   const outputTokens = usage.candidatesTokenCount || 0;
   const totalTokens = usage.totalTokenCount || inputTokens + outputTokens;
 
-  // Log per-call usage
   console.log(
     `\nTokens used this call: input=${inputTokens}, output=${outputTokens}, total=${totalTokens}`
   );
 
-  // Update running session totals
   sessionTokenCount.input += inputTokens;
   sessionTokenCount.output += outputTokens;
   sessionTokenCount.total += totalTokens;
@@ -57,35 +55,13 @@ async function run() {
 
   if (args.length < 2) {
     console.log("⚠️ Usage: node src/index.js <mode> <question> [temperature] [topP] [topK] [stopSequence]");
-    console.log("Modes: system | zeroShot | oneShot | multiShot | dynamic | cot");
-    console.log("Example: node src/index.js zeroShot 'What is dark matter?' 0.7 0.9 40 ###");
+    console.log("Modes: system | zeroShot | oneShot | multiShot | dynamic | cot | structured");
+    console.log("Example: node src/index.js structured 'What is dark matter?'");
     process.exit(1);
   }
 
   const mode = args[0];
-  const possibleNumbers = args.slice(1).filter(arg => !isNaN(parseFloat(arg)));
-  const possibleStopSeq = args.slice(1).filter(arg => isNaN(parseFloat(arg)) && arg !== mode);
-
-  // Question is all string args except stop sequence
-  const query = possibleStopSeq.length > 0
-    ? possibleStopSeq.slice(0, -1).join(" ")
-    : possibleStopSeq.join(" ");
-
-  // Defaults
-  let temperature = 0.7;
-  let topP = 1.0;
-  let topK = 40;
-  let stopSequence = null;
-
-  // Parse numeric args
-  if (possibleNumbers.length >= 1) temperature = parseFloat(possibleNumbers[0]);
-  if (possibleNumbers.length >= 2) topP = parseFloat(possibleNumbers[1]);
-  if (possibleNumbers.length >= 3) topK = parseInt(possibleNumbers[2]);
-
-  // Stop sequence (last non-numeric arg if provided)
-  if (possibleStopSeq.length > 0) {
-    stopSequence = possibleStopSeq[possibleStopSeq.length - 1];
-  }
+  const query = args.slice(1).join(" ");
 
   let finalPrompt = "";
 
@@ -108,32 +84,49 @@ async function run() {
     case "cot":
       finalPrompt = loadPrompt("chainOfThought.txt").replace("${user_query}", query);
       break;
+    case "structured":
+      finalPrompt = `Answer the following question strictly in JSON format.\n\nQuestion: ${query}`;
+      break;
     default:
-      console.log("Invalid mode. Use: system | zeroShot | oneShot | multiShot | dynamic | cot");
+      console.log("Invalid mode. Use: system | zeroShot | oneShot | multiShot | dynamic | cot | structured");
       process.exit(1);
   }
 
   try {
-    // Temperature + Top-p + Top-k + Stop Sequence applied
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: finalPrompt }] }],
-      generationConfig: {
-        temperature: temperature,
-        topP: topP,
-        topK: topK,
-        stopSequences: stopSequence ? [stopSequence] : undefined,
-        maxOutputTokens: 512,
-      },
-    });
+    let result;
 
-    console.log(`\n🌡️ Temperature used: ${temperature}`);
-    console.log(`🎯 Top-p used: ${topP}`);
-    console.log(`🔢 Top-k used: ${topK}`);
-    if (stopSequence) console.log(`⛔ Stop sequence used: "${stopSequence}"`);
-    console.log("\n🌌 Answer:");
-    console.log(result.response.text());
+    if (mode === "structured") {
+      // Structured Output
+      const schema = {
+        type: "object",
+        properties: {
+          answer: { type: "string" },
+          explanation: { type: "string" },
+          confidence: { type: "number" },
+        },
+        required: ["answer", "explanation"],
+      };
 
-    // Log token usage
+      result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: finalPrompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json", // force JSON output
+          responseSchema: schema, // validate JSON schema
+          temperature: 0.7,
+          maxOutputTokens: 512,
+        },
+      });
+
+      console.log("\n🛠️ Structured JSON Answer:");
+      console.log(result.response.text());
+    } else {
+      // Normal output for other modes
+      result = await model.generateContent(finalPrompt);
+      console.log("\n🌌 Answer:");
+      console.log(result.response.text());
+    }
+
+    // Token usage
     logTokens(result.response.usageMetadata);
 
   } catch (err) {
