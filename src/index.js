@@ -36,7 +36,7 @@ function logTokens(usage) {
 
   // Log per-call usage
   console.log(
-    `\n Tokens used this call: input=${inputTokens}, output=${outputTokens}, total=${totalTokens}`
+    `\nTokens used this call: input=${inputTokens}, output=${outputTokens}, total=${totalTokens}`
   );
 
   // Update running session totals
@@ -56,14 +56,24 @@ async function run() {
   const args = process.argv.slice(2);
 
   if (args.length < 2) {
-    console.log("⚠️ Usage: node src/index.js <mode> <question>");
+    console.log("⚠️ Usage: node src/index.js <mode> <question> [temperature]");
     console.log("Modes: system | zeroShot | oneShot | multiShot | dynamic | cot");
-    console.log("Example: node src/index.js zeroShot 'What is dark matter?'");
+    console.log("Example: node src/index.js zeroShot 'What is dark matter?' 0.7");
     process.exit(1);
   }
 
   const mode = args[0];
-  const query = args.slice(1).join(" ");
+  const query = args.slice(1, -1).join(" ");
+  let tempArg = args[args.length - 1];
+
+  // If last arg is numeric → treat as temperature
+  let temperature = 0.7; // default
+  if (!isNaN(parseFloat(tempArg))) {
+    temperature = parseFloat(tempArg);
+  } else {
+    // no temperature provided, last arg is part of query
+    temperature = 0.7;
+  }
 
   let finalPrompt = "";
 
@@ -92,12 +102,20 @@ async function run() {
   }
 
   try {
-    const result = await model.generateContent(finalPrompt);
+    // Now include temperature
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: finalPrompt }] }],
+      generationConfig: {
+        temperature: temperature, // randomness control
+        maxOutputTokens: 512, // optional: limit
+      },
+    });
 
+    console.log(`\n🌡️ Temperature used: ${temperature}`);
     console.log("\n🌌 Answer:");
     console.log(result.response.text());
 
-    // Log token usage
+    // 🔹 Log token usage
     logTokens(result.response.usageMetadata);
 
   } catch (err) {
