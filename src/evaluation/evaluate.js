@@ -21,7 +21,7 @@ async function evaluate() {
     const answer = await model.generateContent(qaPrompt);
     const modelAnswer = answer.response.text();
 
-    // 🔹 Log tokens for QA step
+    // Log tokens for QA step
     if (answer.response.usageMetadata) {
       console.log(
         `Tokens (Answering Q${i + 1}): input=${answer.response.usageMetadata.promptTokenCount}, output=${answer.response.usageMetadata.candidatesTokenCount}, total=${answer.response.usageMetadata.totalTokenCount}`
@@ -46,7 +46,7 @@ async function evaluate() {
     // 🔹 Log tokens for Judgement step
     if (judgement.response.usageMetadata) {
       console.log(
-        `📊 Tokens (Judging Q${i + 1}): input=${judgement.response.usageMetadata.promptTokenCount}, output=${judgement.response.usageMetadata.candidatesTokenCount}, total=${judgement.response.usageMetadata.totalTokenCount}`
+        `Tokens (Judging Q${i + 1}): input=${judgement.response.usageMetadata.promptTokenCount}, output=${judgement.response.usageMetadata.candidatesTokenCount}, total=${judgement.response.usageMetadata.totalTokenCount}`
       );
     }
 
