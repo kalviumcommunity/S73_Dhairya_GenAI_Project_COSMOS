@@ -11,12 +11,12 @@ const judgePrompt = fs.readFileSync("src/evaluation/judgePrompt.txt", "utf8");
 async function evaluate() {
   console.log("Running evaluation on dataset...\n");
 
-  let results = [];
+  const results = [];
 
   for (let i = 0; i < dataset.length; i++) {
     const { question, expected } = dataset[i];
 
-    // Step 1: Get model answer
+    // === Step 1: Get model answer ===
     const qaPrompt = `User Question: ${question}\nAnswer clearly.`;
     const answer = await model.generateContent(qaPrompt);
     const modelAnswer = answer.response.text();
@@ -24,27 +24,29 @@ async function evaluate() {
     // 🔹 Log tokens for QA step
     if (answer.response.usageMetadata) {
       console.log(
-        `Tokens used (Answering Q${i + 1}): input=${answer.response.usageMetadata.promptTokenCount}, output=${answer.response.usageMetadata.candidatesTokenCount}, total=${answer.response.usageMetadata.totalTokenCount}`
+        `Tokens (Answering Q${i + 1}): input=${answer.response.usageMetadata.promptTokenCount}, output=${answer.response.usageMetadata.candidatesTokenCount}, total=${answer.response.usageMetadata.totalTokenCount}`
       );
     }
 
-    // Step 2: Judge the model’s answer
+    // === Step 2: Judge the model’s answer ===
     const judgeInput = judgePrompt
       .replace("${expected}", expected)
       .replace("${model_answer}", modelAnswer);
 
     const judgement = await model.generateContent(judgeInput);
     let evaluation;
+
     try {
       evaluation = JSON.parse(judgement.response.text());
-    } catch {
-      evaluation = { verdict: "Error", total: 0 };
+    } catch (err) {
+      console.error(`⚠️ Could not parse judge response for Q${i + 1}:`, judgement.response.text());
+      evaluation = { verdict: "Error", total: 0, reasoning: "Invalid JSON from judge" };
     }
 
-    // Log tokens for Judgement step
+    // 🔹 Log tokens for Judgement step
     if (judgement.response.usageMetadata) {
       console.log(
-        `Tokens used (Judging Q${i + 1}): input=${judgement.response.usageMetadata.promptTokenCount}, output=${judgement.response.usageMetadata.candidatesTokenCount}, total=${judgement.response.usageMetadata.totalTokenCount}`
+        `📊 Tokens (Judging Q${i + 1}): input=${judgement.response.usageMetadata.promptTokenCount}, output=${judgement.response.usageMetadata.candidatesTokenCount}, total=${judgement.response.usageMetadata.totalTokenCount}`
       );
     }
 
@@ -56,28 +58,33 @@ async function evaluate() {
       ...evaluation
     });
 
-    // Print each result
+    // === Print each result ===
     console.log(`\nQ${i + 1}: ${question}`);
-    console.log(`Expected: ${expected}`);
-    console.log(`Model: ${modelAnswer}`);
-    console.log(`Evaluation:`, evaluation);
+    console.log(`   ✅ Expected: ${expected}`);
+    console.log(`   🤖 Model: ${modelAnswer}`);
+    console.log(`   📝 Evaluation:`, evaluation);
   }
 
-  // Final Summary
-  console.log("\n================ SUMMARY ================");
+  // === Step 3: Final Summary ===
+  console.log("\n================ 📊 SUMMARY ================");
   const total = results.length;
   const passes = results.filter(r => r.verdict === "Pass").length;
   const fails = results.filter(r => r.verdict === "Fail").length;
-
   const avgScore = (
     results.reduce((sum, r) => sum + (r.total || 0), 0) / total
   ).toFixed(2);
+  const passRate = ((passes / total) * 100).toFixed(1);
 
   console.log(`Total Samples: ${total}`);
   console.log(`Passed: ${passes}`);
   console.log(`Failed: ${fails}`);
+  console.log(`Pass Rate: ${passRate}%`);
   console.log(`Average Score: ${avgScore}/15`);
-  console.log("=========================================\n");
+  console.log("============================================\n");
+
+  // === Step 4: Save results ===
+  fs.writeFileSync("src/evaluation/evaluation_results.json", JSON.stringify(results, null, 2));
+  console.log("Results saved to src/evaluation/evaluation_results.json");
 }
 
 evaluate();
