@@ -3,31 +3,41 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>COSMOS — Dark Space • AI</title>
+  <title>COSMOS — Futuristic AI Interface</title>
 
   <!-- Google Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Oxanium:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="space-bg" aria-hidden="true"></div>
+  <!-- <div class="video-background">
+    <video autoplay muted loop playsinline id="bg-video">
+      <source src="135083-760812594_small.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div> -->
 
   <div class="wrap">
     <div class="card" role="main">
+      <!-- Decorative Corner Brackets for HUD effect -->
+      <div class="corner top-left"></div>
+      <div class="corner top-right"></div>
+      <div class="corner bottom-left"></div>
+      <div class="corner bottom-right"></div>
 
       <div class="panel-left" aria-labelledby="app-title">
         <div class="brand">
-          <div class="logo">✦</div>
+          <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9 9 9 0 0 1-9-9 9 9 0 0 1 9-9z"/><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/><path d="M12 2v1"/><path d="M12 21v1"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h1"/><path d="M21 12h1"/><path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/></svg>
+          </div>
           <div>
             <h1 id="app-title">COSMOS</h1>
-            <p style="margin:0;color:var(--muted);font-size:13px">Explore the unexplored</p>
+            <p class="subtitle">Cognitive Ontology System for Mapping Outer Space</p>
           </div>
         </div>
-
-        <p class="subtitle">Cognitive Ontology System for Mapping Outer Space</p>
 
         <form id="prompt-form" class="controls">
           <div>
@@ -42,16 +52,17 @@
           </div>
 
           <div>
-            <label for="prompt-input">Prompt</label>
-            <textarea id="prompt-input" rows="6" placeholder="Explain quantum entanglement like I'm five..."></textarea>
+            <label for="prompt-input">User Directive</label>
+            <textarea id="prompt-input" rows="6" placeholder="Explain quantum entanglement..."></textarea>
           </div>
 
           <div class="btn-row">
-            <button class="btn" id="generate" type="submit">Generate</button>
+            <button class="btn" id="generate" type="submit">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              <span>Transmit</span>
+            </button>
             <button class="btn secondary" id="clear" type="button">Clear</button>
           </div>
-
-          <div style="margin-top:8px;font-size:12px;color:var(--muted)">Tip: Try short, clear prompts for concise answers. Add "in simple terms" to make it beginner-friendly.</div>
         </form>
 
       </div>
@@ -59,34 +70,26 @@
       <div class="panel-right">
         <div class="meta">
           <div class="chips">
-            <div class="chip">Model: Gemini</div>
-            <div class="chip">Theme: Dark • Galaxy</div>
+            <div class="chip">Model: Gemini 1.5 Flash</div>
           </div>
-          <div style="color:var(--muted);font-size:13px">Response</div>
+          <div class="response-title">Data Stream</div>
         </div>
 
         <div class="resp-card" id="response-card" aria-live="polite">
-          <div id="loaderArea" style="display:none;text-align:center;padding:18px">
-            <div class="loader" aria-hidden="true">
-              <div class="dot"></div>
-              <div class="dot"></div>
-              <div class="dot"></div>
-            </div>
-            <div style="color:var(--muted);margin-top:8px;font-size:13px">Rendering cosmic answer…</div>
+          <div id="loaderArea" class="loader-container">
+            <div class="loader"></div>
+            <div class="loader-text">Awaiting transmission...</div>
           </div>
-
-          <pre id="response-text">Welcome to COSMOS — type a prompt and hit Generate to get started.</pre>
+          <pre id="response-text"></pre>
         </div>
 
-        <footer>Built with ✨ • Keep exploring</footer>
-
+        <footer class="footer-text">SYSTEM STATUS: OPERATIONAL</footer>
       </div>
-
-      <div class="planet" aria-hidden="true"></div>
-
     </div>
   </div>
 
+  <a href="https://github.com/dhairyajangir" target="_blank" rel="noopener noreferrer" class="watermark">Dhairya</a>
   <script src="script.js"></script>
 </body>
 </html>
+

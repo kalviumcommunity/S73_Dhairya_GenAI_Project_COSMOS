@@ -1,12 +1,22 @@
+require("dotenv").config(); // Load environment variables from .env file
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require("fs");
+const path = require("path");
+
+// Ensure API key is available
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error("GEMINI_API_KEY is not defined in the environment variables.");
+}
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // Load dataset + judge prompt
-const dataset = JSON.parse(fs.readFileSync("src/evaluation/dataset.json", "utf8"));
-const judgePrompt = fs.readFileSync("src/evaluation/judgePrompt.txt", "utf8");
+const datasetPath = path.join(__dirname, "dataset.json");
+const judgePromptPath = path.join(__dirname, "judgePrompt.txt");
+
+const dataset = JSON.parse(fs.readFileSync(datasetPath, "utf8"));
+const judgePrompt = fs.readFileSync(judgePromptPath, "utf8");
 
 async function evaluate() {
   console.log("Running evaluation on dataset...\n");
@@ -60,13 +70,13 @@ async function evaluate() {
 
     // === Print each result ===
     console.log(`\nQ${i + 1}: ${question}`);
-    console.log(`   ✅ Expected: ${expected}`);
-    console.log(`   🤖 Model: ${modelAnswer}`);
-    console.log(`   📝 Evaluation:`, evaluation);
+    console.log(`     Expected: ${expected}`);
+    console.log(`     Model: ${modelAnswer}`);
+    console.log(`     Evaluation:`, evaluation);
   }
 
   // === Step 3: Final Summary ===
-  console.log("\n================ 📊 SUMMARY ================");
+  console.log("\n================SUMMARY ================");
   const total = results.length;
   const passes = results.filter(r => r.verdict === "Pass").length;
   const fails = results.filter(r => r.verdict === "Fail").length;
@@ -83,8 +93,9 @@ async function evaluate() {
   console.log("============================================\n");
 
   // === Step 4: Save results ===
-  fs.writeFileSync("src/evaluation/evaluation_results.json", JSON.stringify(results, null, 2));
-  console.log("Results saved to src/evaluation/evaluation_results.json");
+  const resultsPath = path.join(__dirname, 'evaluation_results.json');
+  fs.writeFileSync(resultsPath, JSON.stringify(results, null, 2));
+  console.log(`Results saved to ${resultsPath}`);
 }
 
 evaluate();

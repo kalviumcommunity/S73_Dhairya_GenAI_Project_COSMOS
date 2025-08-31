@@ -2,10 +2,11 @@
   "name": "s73_dhairya_genai_project_cosmos",
   "version": "1.0.0",
   "description": "SpaceSense is a **Generative AI-based educational assistant** that explains **space science concepts** in a simple, well-structured way using the **Google Gemini-1.5-Flash API**.",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "evaluate": "node src/evaluation/evaluate.js"
   },
   "repository": {
     "type": "git",
@@ -23,8 +24,7 @@
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
-    "express": "^5.1.0",
-    "fs": "^0.0.1-security"
+    "express": "^4.19.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

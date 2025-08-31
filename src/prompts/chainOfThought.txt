@@ -2,4 +2,5 @@ Think step by step:
 1. Break down the question into smaller parts.
 2. Recall the scientific concept.
 3. Structure explanation into definition, reason, example, and summary.
-Question: Why do planets orbit the sun?
+
+Question: ${user_query}

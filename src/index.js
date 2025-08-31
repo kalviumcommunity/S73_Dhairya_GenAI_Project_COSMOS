@@ -5,219 +5,112 @@ const cors = require("cors");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require("fs");
 const path = require("path");
+const { getDynamicPrompt } = require("./prompts/dynamic");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Initialize Gemini API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-const embeddingModel = genAI.getGenerativeModel({ model: "embedding-001" });
-
-// Running token usage counter
-let sessionTokenCount = { input: 0, output: 0, total: 0 };
-
-// Mock vector DB (replace with Pinecone, Weaviate, or FAISS in production)
-let vectorDB = [];
-
-/**
- * Load prompt file by name
- */
-function loadPrompt(fileName) {
-  const filePath = path.join(__dirname, "prompts", fileName);
-  return fs.readFileSync(filePath, "utf8");
-}
-
-/**
- * Log token usage
- */
-function logTokens(usage) {
-  if (!usage) {
-    console.log("⚠️ No token usage metadata available.");
-    return;
+// --- Express API Route ---
+// This must come BEFORE express.static
+app.post("/api/prompt", async (req, res) => {
+  const { prompt, promptType } = req.body;
+  if (!prompt || !promptType) {
+    return res.status(400).json({ error: "Missing prompt or promptType" });
   }
-  const inputTokens = usage.promptTokenCount || 0;
-  const outputTokens = usage.candidatesTokenCount || 0;
-  const totalTokens = usage.totalTokenCount || inputTokens + outputTokens;
-
-  console.log(
-    `\nTokens this call: input=${inputTokens}, output=${outputTokens}, total=${totalTokens}`
-  );
-
-  sessionTokenCount.input += inputTokens;
-  sessionTokenCount.output += outputTokens;
-  sessionTokenCount.total += totalTokens;
-
-  console.log(
-    `Running totals: input=${sessionTokenCount.input}, output=${sessionTokenCount.output}, total=${sessionTokenCount.total}`
-  );
-}
-
-/**
- * Similarity metrics
- */
-function cosineSim(vecA, vecB) {
-  const dot = vecA.reduce((sum, v, i) => sum + v * vecB[i], 0);
-  const magA = Math.sqrt(vecA.reduce((sum, v) => sum + v * v, 0));
-  const magB = Math.sqrt(vecB.reduce((sum, v) => sum + v * v, 0));
-  return dot / (magA * magB);
-}
-function euclideanDistance(vecA, vecB) {
-  const sumSquares = vecA.reduce((sum, v, i) => sum + Math.pow(v - vecB[i], 2), 0);
-  return Math.sqrt(sumSquares);
-}
-function dotProduct(vecA, vecB) {
-  return vecA.reduce((sum, v, i) => sum + v * vecB[i], 0);
-}
-
-/**
- * Store and search vector DB
- */
-async function storeInVectorDB(text, metadata = {}) {
-  const embedding = await embeddingModel.embedContent(text);
-  const vector = embedding.embedding.values;
-  vectorDB.push({ vector, text, metadata });
-  console.log(`Stored text in vector DB: "${text.slice(0, 40)}..."`);
-}
-async function searchVectorDB(query, topK = 3, metric = "cosine") {
-  const embedding = await embeddingModel.embedContent(query);
-  const queryVector = embedding.embedding.values;
-
-  const scored = vectorDB.map((item) => {
-    let score;
-    if (metric === "cosine") {
-      score = cosineSim(queryVector, item.vector);
-    } else if (metric === "euclidean") {
-      score = 1 / (1 + euclideanDistance(queryVector, item.vector)); // normalize
-    } else if (metric === "dot") {
-      score = dotProduct(queryVector, item.vector);
-    }
-    return { ...item, score };
-  });
-
-  return scored.sort((a, b) => b.score - a.score).slice(0, topK);
-}
-
-/**
- * Express API route
- */
-const systemPrompt = fs.readFileSync(
-  path.join(__dirname, "prompts", "systemPrompt.txt"),
-  "utf8"
-);
-
-app.post("/api/explain", async (req, res) => {
-  const { term } = req.body;
-  if (!term) return res.status(400).json({ error: "Missing term" });
 
   try {
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${systemPrompt}\n\nUser Question: ${term}` }],
-        },
-      ],
-    });
-
-    res.json({
-      prompt: `${systemPrompt}\n\nUser Question: ${term}`,
-      aiText: result.response.text(),
-    });
+    const fullPrompt = getPrompt(promptType, prompt);
+    const aiText = await generate(fullPrompt);
+    res.json({ response: aiText });
   } catch (err) {
-    console.error("Error while generating response:", err);
-    res.status(500).json({ error: "Gemini API error", details: err.message });
+    res.status(500).json({ error: "API error", details: err.message });
   }
 });
 
-/**
- * CLI runner
- */
-async function run() {
-  const args = process.argv.slice(2);
-  if (args.length === 0) return; // don’t run CLI if no args (so server can still start)
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// Initialize Gemini API
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+/**
+ * Gets the full prompt string based on the selected type and user query.
+ * @param {string} promptType - The type of prompt (e.g., 'zeroShot', 'dynamic').
+ * @param {string} query - The user's input query.
+ * @returns {string} The fully constructed prompt.
+ */
+function getPrompt(promptType, query) {
+  if (promptType === "dynamic") {
+    // Dynamic prompt has its own logic
+    return getDynamicPrompt(query);
+  }
+  const fileName = `${promptType}.txt`;
+  const filePath = path.join(__dirname, "prompts", fileName);
+  try {
+    const template = fs.readFileSync(filePath, "utf8");
+    return template.replace("${user_query}", query);
+  } catch (error) {
+    console.error(`Error loading prompt file: ${fileName}`, error);
+    // Fallback to a simple prompt if file is missing
+    return `User Question: ${query}`;
+  }
+}
+
+/**
+ * Generates content using the Gemini model.
+ * @param {string} prompt - The full prompt to send to the model.
+ * @returns {Promise<string>} The generated text from the model.
+ */
+async function generate(prompt) {
+  try {
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (error) {
+    console.error("Error while generating response:", error);
+    throw new Error("Failed to generate content from Gemini API.");
+  }
+}
+
+// --- CLI Runner ---
+async function runCli() {
+  const args = process.argv.slice(2);
+  // No need to check for args length here as it's done in the startup logic
+  
   if (args.length < 2) {
-    console.log(
-      "⚠️ Usage: node src/index.js <mode> <question> [temperature] [topP] [topK] [metric]"
-    );
+    console.log("Usage: node src/index.js <promptType> <question>");
     process.exit(1);
   }
 
   const mode = args[0];
-  const query = args.slice(1, -4).join(" ") || args[1];
-  const tempArg = args[args.length - 4];
-  const topPArg = args[args.length - 3];
-  const topKArg = args[args.length - 2];
-  const metricArg = args[args.length - 1];
-
-  let temperature = isNaN(parseFloat(tempArg)) ? 0.7 : parseFloat(tempArg);
-  let topP = isNaN(parseFloat(topPArg)) ? 1.0 : parseFloat(topPArg);
-  let topK = isNaN(parseInt(topKArg)) ? 40 : parseInt(topKArg);
-  let metric = ["cosine", "euclidean", "dot"].includes(metricArg)
-    ? metricArg
-    : "cosine";
-
-  let finalPrompt = "";
-
-  switch (mode) {
-    case "system":
-      finalPrompt = loadPrompt("systemPrompt.txt").replace("${user_query}", query);
-      break;
-    case "zeroShot":
-      finalPrompt = loadPrompt("zeroShot.txt").replace("${user_query}", query);
-      break;
-    case "oneShot":
-      finalPrompt = loadPrompt("oneShot.txt").replace("${user_query}", query);
-      break;
-    case "multiShot":
-      finalPrompt = loadPrompt("multiShot.txt").replace("${user_query}", query);
-      break;
-    case "cot":
-      finalPrompt = loadPrompt("chainOfThought.txt").replace("${user_query}", query);
-      break;
-    case "embed":
-      await storeInVectorDB(query, { source: "user" });
-      return;
-    case "search":
-      const results = await searchVectorDB(query, 3, metric);
-      console.log(`\nVector DB search results using ${metric} similarity:`);
-      results.forEach((r, i) =>
-        console.log(`${i + 1}. ${r.text} (score=${r.score.toFixed(3)})`)
-      );
-      return;
-    default:
-      console.log("Invalid mode.");
-      process.exit(1);
-  }
+  const query = args.slice(1).join(" "); // Correctly join all subsequent args for the query
 
   try {
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: finalPrompt }] }],
-      generationConfig: {
-        temperature,
-        topP,
-        topK,
-        maxOutputTokens: 512,
-        stopSequences: ["### END"],
-      },
-    });
-
-    console.log(`\n🌡️ Temp=${temperature}, TopP=${topP}, TopK=${topK}`);
-    console.log("\n🌌 Answer:");
-    console.log(result.response.text());
-
-    logTokens(result.response.usageMetadata);
+      const finalPrompt = getPrompt(mode, query);
+      console.log(`--- Running CLI with mode: ${mode} ---`);
+      console.log(`--- Prompt --- \n${finalPrompt}\n--- End Prompt ---`);
+      const result = await generate(finalPrompt);
+      console.log("\n🌌 Answer:");
+      console.log(result);
   } catch (err) {
-    console.error("⚠️ Error generating response:", err.message);
+    console.error("⚠️ Error in CLI:", err.message);
   }
 }
 
-run();
+// --- Application Startup Logic ---
+if (require.main === module) {
+    // Check if command-line arguments are present.
+    // The first two args are 'node' and the script path.
+    if (process.argv.length > 2) {
+        // If args exist, run the CLI.
+        runCli();
+    } else {
+        // Otherwise, start the Express server.
+        app.listen(PORT, () => {
+            console.log(`✅ COSMOS backend running on http://localhost:${PORT}`);
+        });
+    }
+}
 
-// Start express server
-app.listen(PORT, () => {
-  console.log(`✅ COSMOS backend running on http://localhost:${PORT}`);
-});
